@@ -17,6 +17,10 @@ class CustomUser(AbstractUser):
 
 # Linking profiles to users
 class PatientProfile(models.Model):
+    """
+    Profile model for patients.
+    Stores patient-specific information.
+    """
     user = models.OneToOneField(CustomUser, on_delete=models.CASCADE)
     date_of_birth = models.DateField()
     gender = models.CharField(max_length=10, choices=[('Male', 'Male'), ('Female', 'Female'), ('Other', 'Other')])
@@ -29,6 +33,10 @@ class PatientProfile(models.Model):
     
 
 class DoctorProfile(models.Model):
+    """
+    Profile model for doctors.
+    Stores doctor-specific information.
+    """
     user = models.OneToOneField(CustomUser, on_delete=models.CASCADE)
     license_number = models.CharField(max_length=50, unique=True)
     years_of_experience = models.PositiveIntegerField()

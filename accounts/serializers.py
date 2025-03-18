@@ -2,6 +2,7 @@
 from rest_framework import serializers
 from django.contrib.auth import get_user_model
 from django.contrib.auth import authenticate
+from accounts.models import PatientProfile, DoctorProfile
 
 User = get_user_model()  # Use default User model or custom model if defined
 
@@ -36,3 +37,38 @@ class LoginSerializer(serializers.Serializer):
     """
     username = serializers.CharField()
     password = serializers.CharField(write_only=True)  # Password is write-only
+
+
+# Serializer for PatientProfile
+class PatientProfileSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = PatientProfile
+        fields = ['date_of_birth', 'gender', 'address', 'emergency_contact_name', 'emergency_contact_phone']
+
+# Serializer for DoctorProfile
+class DoctorProfileSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = DoctorProfile
+        fields = ['license_number', 'years_of_experience']
+
+
+# Combined serializer for CustomUser and their profile
+class UserProfileSerializer(serializers.ModelSerializer):
+    profile = serializers.SerializerMethodField()
+
+    class Meta:
+        model = User
+        fields = ['id', 'username', 'email', 'role', 'profile']
+
+    def get_profile(self, obj):
+        if obj.role == 'patient':
+            try:
+                return PatientProfileSerializer(obj.patientprofile).data
+            except PatientProfile.DoesNotExist:
+                return None
+        elif obj.role == 'doctor':
+            try:
+                return DoctorProfileSerializer(obj.doctorprofile).data
+            except DoctorProfile.DoesNotExist:
+                return None
+        return None

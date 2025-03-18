@@ -25,7 +25,7 @@ SECRET_KEY = 'django-insecure-wek_77t-ut#bgeg3)7&u2ukawjbnd0%jq%(36wf&9r*r+ps3@6
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = ["*"]
 
 
 # Application definition
@@ -37,6 +37,7 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    'corsheaders',
     'patients',
     'doctors',
     'appointments',
@@ -50,6 +51,7 @@ INSTALLED_APPS = [
 ]
 
 MIDDLEWARE = [
+    'corsheaders.middleware.CorsMiddleware',
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
@@ -143,3 +145,15 @@ REST_FRAMEWORK = {
         'rest_framework.permissions.IsAuthenticated',         # Restrict access to authenticated users
     ],
 }
+
+
+# For development, allowing all origins
+CORS_ALLOW_ALL_ORIGINS = True
+
+# For production
+# CORS_ALLOWED_ORIGINS = [
+#     "http://localhost:3000",  
+# ]
+
+# Allow credentials (important for withCredentials: true setting)
+CORS_ALLOW_CREDENTIALS = True

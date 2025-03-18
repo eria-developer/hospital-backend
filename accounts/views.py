@@ -5,7 +5,9 @@ from rest_framework import status
 from rest_framework.authtoken.models import Token
 from rest_framework.permissions import AllowAny
 from django.contrib.auth import authenticate
-from .serializers import UserSerializer, LoginSerializer
+from .serializers import UserSerializer, LoginSerializer, UserProfileSerializer, PatientProfileSerializer, DoctorProfileSerializer
+from permissions.permissions import IsAdminUser, IsAdminOrOwner
+from .models import CustomUser, PatientProfile, DoctorProfile
 
 # Registration view
 class RegisterView(APIView):
@@ -36,7 +38,7 @@ class LoginView(APIView):
     Returns an authentication token if credentials are valid.
     """
     permission_classes = [AllowAny]
-    
+
     def post(self, request):
         serializer = LoginSerializer(data=request.data)
         if serializer.is_valid():
@@ -48,3 +50,37 @@ class LoginView(APIView):
                 return Response({'token': token.key}, status=status.HTTP_200_OK)
             return Response({'error': 'Invalid credentials'}, status=status.HTTP_401_UNAUTHORIZED)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+    
+
+class UserProfileView(APIView):
+    permission_classes = [IsAdminOrOwner]
+
+    def get(self, request, user_id):
+        try:
+            user = CustomUser.objects.get(id=user_id)
+            serializer = UserProfileSerializer(user)
+            return Response(serializer.data, status=status.HTTP_200_OK)
+        except CustomUser.DoesNotExist:
+            return Response({"error": "User not found"}, status=status.HTTP_404_NOT_FOUND)
+        
+    def put(self, request, user_id):
+        try:
+            user = CustomUser.objects.get(id=user_id)
+            role = user.role
+            profile_data = request.data.get('profile', {})
+
+            if role == 'patient':
+                profile, created = PatientProfile.objects.get_or_create(user=user)
+                serializer = PatientProfileSerializer(profile, data=profile_data, partial=True)
+            elif role == 'doctor':
+                profile, created = DoctorProfile.objects.get_or_create(user=user)
+                serializer = DoctorProfileSerializer(profile, data=profile_data, partial=True)
+            else:
+                return Response({"error": "Invalid user role"}, status=status.HTTP_400_BAD_REQUEST)
+
+            if serializer.is_valid():
+                serializer.save()
+                return Response(UserProfileSerializer(user).data, status=status.HTTP_200_OK)
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        except CustomUser.DoesNotExist:
+            return Response({"error": "User not found"}, status=status.HTTP_404_NOT_FOUND)

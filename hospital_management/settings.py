@@ -46,6 +46,8 @@ INSTALLED_APPS = [
     'inventory',
     'staff',
     'accounts',
+    'pos',
+    'suppliers',
     'rest_framework',
     'rest_framework.authtoken', # Enables token authentication
 ]

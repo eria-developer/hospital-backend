@@ -63,7 +63,7 @@ class ItemDetailView(APIView):
         item = self.get_object(pk)
         if item is None:
             return Response(status=status.HTTP_404_NOT_FOUND)
-        serializer = ItemSerializer(item, data=request.data)
+        serializer = ItemSerializer(item, data=request.data, partial=True)
         if serializer.is_valid():
             serializer.save()
             return Response(serializer.data)

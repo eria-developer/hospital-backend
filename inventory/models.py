@@ -1,17 +1,8 @@
 from django.db import models
 from suppliers.models import Supplier
+from categories.models import Category
 
 
-class Category(models.Model):
-    """
-    Model representing item categories in the inventory.
-    """
-    name = models.CharField(max_length=100)
-    description = models.TextField(blank=True)
-
-    def __str__(self):
-        return self.name
-    
 
 class Item(models.Model):
     """

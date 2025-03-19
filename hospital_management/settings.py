@@ -50,6 +50,7 @@ INSTALLED_APPS = [
     'suppliers',
     'categories',
     'rest_framework',
+    'drf_yasg',
     'rest_framework.authtoken', # Enables token authentication
 ]
 

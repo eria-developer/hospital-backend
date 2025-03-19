@@ -10,7 +10,7 @@ class Sale(models.Model):
     Model representing a sales transaction in the POS system.
     """
     date = models.DateTimeField(auto_now_add=True)
-    total_amount = models.DecimalField(max_digits=10, decimal_places=2)
+    total_amount = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
     cashier = models.ForeignKey(User, on_delete=models.SET_NULL, null=True)
 
     def __str__(self):

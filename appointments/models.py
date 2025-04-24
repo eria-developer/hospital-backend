@@ -1,9 +1,9 @@
 from django.db import models
-from patients.models import Patient
+from patients.models import Patients
 from doctors.models import Doctor
 
 class Appointment(models.Model):
-    patient = models.ForeignKey(Patient, on_delete=models.CASCADE)
+    patient = models.ForeignKey(Patients, on_delete=models.CASCADE)
     doctor = models.ForeignKey(Doctor, on_delete=models.CASCADE)
     appointment_date = models.DateTimeField(db_index=True)
     status = models.CharField(

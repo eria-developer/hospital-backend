@@ -1,8 +1,8 @@
 from django.db import models
-from patients.models import Patient
+from patients.models import Patients
 
 class Invoice(models.Model):
-    patient = models.ForeignKey(Patient, on_delete=models.CASCADE)
+    patient = models.ForeignKey(Patients, on_delete=models.CASCADE)
     invoice_date = models.DateField(db_index=True)
     total_amount = models.DecimalField(max_digits=10, decimal_places=2)
     paid_amount = models.DecimalField(max_digits=10, decimal_places=2, default=0)

@@ -7,9 +7,9 @@ from drf_yasg import openapi
 # configuring swagger 
 schema_view = get_schema_view(
     openapi.Info(
-        title="Your API",
+        title="Medic Plus Backend",
         default_version='v1',
-        description="Description for the hospital backend API",
+        description="API documentation for Medic Plus",
         terms_of_service="",
         contact=openapi.Contact(email="eriddeveloper@gmail.com"),
         license=openapi.License(name="My License"),

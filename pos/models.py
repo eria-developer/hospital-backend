@@ -1,6 +1,7 @@
 from django.db import models
 from django.contrib.auth import get_user_model
 from products.models import Product
+from patients.models import Patients
 
 User = get_user_model()
 
@@ -12,6 +13,14 @@ class Sale(models.Model):
     date = models.DateTimeField(auto_now_add=True)
     total_amount = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
     cashier = models.ForeignKey(User, on_delete=models.SET_NULL, null=True)
+    patient = models.ForeignKey(
+        Patients,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        default=1,
+        help_text="The patient associated with this sale; defaults to Walk-in Customer if not specified"
+    )
 
     def __str__(self):
         return f"Sale {self.id} on {self.date}"

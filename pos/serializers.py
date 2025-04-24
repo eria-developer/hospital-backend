@@ -5,8 +5,9 @@ from products.models import Product
 
 class SaleDetailSerializer(serializers.ModelSerializer):
     """
-    Serializer for SaleDetail model, including nested item representation.
-    Allows optional unit_price and subtotal in requests, recalculates them server-side.
+    Serializer for the SaleDetail model, handling serialization and validation of individual products in a sale.
+
+    Allows optional unit_price in requests, recalculates unit_price and subtotal server-side based on product data.
 
     Fields:
         - id (int): The unique identifier of the sale detail (read-only).
@@ -16,7 +17,7 @@ class SaleDetailSerializer(serializers.ModelSerializer):
         - subtotal (decimal): The calculated subtotal (quantity * unit_price, read-only, max 10 digits, 2 decimal places).
 
     Usage:
-        Validates and serializes sale detail data, ensuring unit_price and subtotal are calculated correctly.
+        Validates and serializes sale detail data, ensuring unit_price and subtotal are calculated correctly for each product in a sale.
     """
     product = serializers.PrimaryKeyRelatedField(queryset=Product.objects.all())
     unit_price = serializers.DecimalField(max_digits=10, decimal_places=2, required=False)
@@ -28,7 +29,7 @@ class SaleDetailSerializer(serializers.ModelSerializer):
 
     def validate(self, data):
         """
-        Validate and recalculate unit_price and subtotal based on Product data.
+        Validate and recalculate unit_price and subtotal based on product data.
 
         Parameters:
             data (dict): The input data containing product, quantity, and optional unit_price.
@@ -37,12 +38,12 @@ class SaleDetailSerializer(serializers.ModelSerializer):
             dict: The validated data with recalculated unit_price and subtotal.
 
         Raises:
-            ValidationError: If the product or quantity is invalid.
+            ValidationError: If the product is invalid or quantity is not positive.
         """
         product = data['product']
         quantity = data['quantity']
 
-        # Use provided unit_price if given, otherwise fetch from item
+        # Use provided unit_price if given, otherwise fetch from product
         unit_price = data.get('unit_price', product.unit_price)
 
         # Recalculate subtotal regardless of provided value
@@ -53,40 +54,44 @@ class SaleDetailSerializer(serializers.ModelSerializer):
 
 class SaleSerializer(serializers.ModelSerializer):
     """
-    Serializer for Sale model, including nested sale details and inventory updates.
+    Serializer for the Sale model, handling serialization, validation, and inventory updates.
+
+    Includes nested sale details and supports associating a sale with a patient, defaulting to a Walk-in Customer if not specified.
 
     Fields:
         - id (int): The unique identifier of the sale (read-only).
         - date (datetime): The date and time of the sale (read-only, set automatically).
-        - total_amount (decimal): The total amount of the sale (read-only, calculated from details).
-        - cashier (int): The ID of the user who created the sale (read-only, set automatically).
+        - total_amount (decimal): The total amount of the sale (read-only, calculated from details, max 10 digits, 2 decimal places).
+        - cashier (int): The ID of the user who created the sale (read-only, set automatically to the authenticated user).
+        - patient (int): The ID of the associated patient (optional, defaults to Walk-in Customer if not provided).
         - details (list): A list of SaleDetail objects (required, as defined in SaleDetailSerializer).
 
     Usage:
-        Validates and serializes sale data, creates sale records, calculates total amount, and updates inventory quantities.
+        Validates and serializes sale data, creates sale records, calculates total amount, updates product inventory, and associates the sale with a patient (defaulting to Walk-in Customer if not specified).
     """
     details = SaleDetailSerializer(many=True)
 
     class Meta:
         model = Sale
-        fields = ['id', 'date', 'total_amount', 'cashier', 'details']
-        read_only_fields = ['date', 'total_amount']
+        fields = ['id', 'date', 'total_amount', 'cashier', 'patient', 'details']
+        read_only_fields = ['date', 'total_amount', 'cashier']
 
     def create(self, validated_data):
         """
-        Create a new sale, calculate total amount, and update inventory quantities.
+        Create a new sale, calculate total amount, associate with a patient (defaulting to Walk-in Customer if not provided), and update inventory quantities.
 
         Parameters:
-            validated_data (dict): Validated data containing cashier and details.
+            validated_data (dict): Validated data containing patient (optional), cashier, and details.
 
         Returns:
             Sale: The created sale instance.
 
         Raises:
-            ValidationError: If there is insufficient stock for any product in the sale.
+            ValidationError: If there is insufficient stock for any product in the sale or if the patient ID is invalid.
         """
         details_data = validated_data.pop('details')
-        sale = Sale.objects.create(cashier=validated_data['cashier'])
+        # If patient is not provided, it will use the default from the model (Walk-in Customer)
+        sale = Sale.objects.create(cashier=validated_data['cashier'], patient=validated_data.get('patient'))
         total_amount = 0
 
         for detail_data in details_data:

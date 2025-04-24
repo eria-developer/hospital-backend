@@ -21,7 +21,7 @@ class SaleListCreateView(APIView):
 
         Returns:
             Response: A JSON response containing a list of serialized sale objects.
-                      Each sale includes its ID, date, total amount, cashier, and details.
+                      Each sale includes its ID, date, total amount, cashier, patient (Walk-in Customer if not specified), and details.
                       Status code 200 OK on success.
 
         Authentication:
@@ -33,11 +33,12 @@ class SaleListCreateView(APIView):
 
     def post(self, request):
         """
-        Create a new sale with details and update inventory accordingly.
+        Create a new sale with details, associate it with a patient (defaulting to Walk-in Customer if not specified), and update inventory accordingly.
 
         Parameters:
             request (Request): The HTTP request object containing the sale data in JSON format.
                               Expected fields:
+                              - patient (int): The ID of the associated patient (optional, defaults to Walk-in Customer if not provided or null).
                               - details (list): A list of sale detail objects, each containing:
                                 - product (int): The ID of the product (required).
                                 - quantity (int): The quantity sold (required, positive integer).
@@ -45,7 +46,7 @@ class SaleListCreateView(APIView):
 
         Returns:
             Response: A JSON response containing the serialized sale object on success with status code 201 Created.
-                      If the input data is invalid or inventory is insufficient, returns errors with status code 400 Bad Request.
+                      If the input data is invalid (e.g., invalid patient ID or insufficient stock), returns errors with status code 400 Bad Request.
 
         Authentication:
             Requires a valid authentication token in the Authorization header.
@@ -53,7 +54,8 @@ class SaleListCreateView(APIView):
         Notes:
             - The cashier is automatically set to the authenticated user.
             - The total_amount and date are calculated server-side and are read-only.
-            - Inventory quantities are updated automatically, and the request will fail if stock is insufficient.
+            - Inventory quantities (product stock levels) are updated automatically, and the request will fail if stock is insufficient.
+            - If the patient field is not provided or is null, the sale is associated with the Walk-in Customer (default patient).
         """
         serializer = SaleSerializer(data=request.data)
         if serializer.is_valid():
@@ -93,7 +95,7 @@ class SaleDetailView(APIView):
 
         Returns:
             Response: A JSON response containing the serialized sale object with status code 200 OK.
-                      Includes the sale's ID, date, total amount, cashier, and details.
+                      Includes the sale's ID, date, total amount, cashier, patient (Walk-in Customer if not specified), and details.
                       If the sale is not found, returns status code 404 Not Found.
 
         Authentication:

@@ -2,7 +2,7 @@ from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
 from rest_framework.permissions import IsAuthenticated
-from .models import Patient
+from .models import Patients
 from .serializers import PatientSerializer
 
 
@@ -26,7 +26,7 @@ class PatientListCreateView(APIView):
         Authentication:
             Requires a valid authentication token in the Authorization header.
         """
-        patients = Patient.objects.all()
+        patients = Patients.objects.all()
         serializer = PatientSerializer(patients, many=True)
         return Response(serializer.data)
 
@@ -79,8 +79,8 @@ class PatientDetailView(APIView):
             Patient: The patient object if found, otherwise None.
         """
         try:
-            return Patient.objects.get(pk=pk)
-        except Patient.DoesNotExist:
+            return Patients.objects.get(pk=pk)
+        except Patients.DoesNotExist:
             return None
 
     def get(self, request, pk):

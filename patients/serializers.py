@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import Patient
+from .models import Patients
 
 
 class PatientSerializer(serializers.ModelSerializer):
@@ -27,7 +27,7 @@ class PatientSerializer(serializers.ModelSerializer):
         Used to validate and serialize patient data for creating, updating, or retrieving patients.
     """
     class Meta:
-        model = Patient
+        model = Patients
         fields = '__all__'
 
     def validate_date_of_birth(self, value):
@@ -61,6 +61,6 @@ class PatientSerializer(serializers.ModelSerializer):
         Raises:
             ValidationError: If the medical record number is already in use.
         """
-        if self.instance is None and Patient.objects.filter(medical_record_number=value).exists():
+        if self.instance is None and Patients.objects.filter(medical_record_number=value).exists():
             raise serializers.ValidationError("A patient with this medical record number already exists.")
         return value

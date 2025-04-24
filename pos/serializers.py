@@ -1,6 +1,6 @@
 from rest_framework import serializers
 from .models import Sale, SaleDetail
-from inventory.models import Item
+from products.models import Product
 
 
 class SaleDetailSerializer(serializers.ModelSerializer):
@@ -10,40 +10,40 @@ class SaleDetailSerializer(serializers.ModelSerializer):
 
     Fields:
         - id (int): The unique identifier of the sale detail (read-only).
-        - item (int): The ID of the associated item (required).
+        - product (int): The ID of the associated product (required).
         - quantity (int): The quantity sold (required, positive integer).
-        - unit_price (decimal): The unit price of the item (optional, max 10 digits, 2 decimal places; defaults to item's unit price).
+        - unit_price (decimal): The unit price of the product (optional, max 10 digits, 2 decimal places; defaults to product's unit price).
         - subtotal (decimal): The calculated subtotal (quantity * unit_price, read-only, max 10 digits, 2 decimal places).
 
     Usage:
         Validates and serializes sale detail data, ensuring unit_price and subtotal are calculated correctly.
     """
-    item = serializers.PrimaryKeyRelatedField(queryset=Item.objects.all())
+    product = serializers.PrimaryKeyRelatedField(queryset=Product.objects.all())
     unit_price = serializers.DecimalField(max_digits=10, decimal_places=2, required=False)
     subtotal = serializers.DecimalField(max_digits=10, decimal_places=2, required=False, read_only=True)
 
     class Meta:
         model = SaleDetail
-        fields = ['id', 'item', 'quantity', 'unit_price', 'subtotal']
+        fields = ['id', 'product', 'quantity', 'unit_price', 'subtotal']
 
     def validate(self, data):
         """
-        Validate and recalculate unit_price and subtotal based on item data.
+        Validate and recalculate unit_price and subtotal based on Product data.
 
         Parameters:
-            data (dict): The input data containing item, quantity, and optional unit_price.
+            data (dict): The input data containing product, quantity, and optional unit_price.
 
         Returns:
             dict: The validated data with recalculated unit_price and subtotal.
 
         Raises:
-            ValidationError: If the item or quantity is invalid.
+            ValidationError: If the product or quantity is invalid.
         """
-        item = data['item']
+        product = data['product']
         quantity = data['quantity']
 
         # Use provided unit_price if given, otherwise fetch from item
-        unit_price = data.get('unit_price', item.unit_price)
+        unit_price = data.get('unit_price', product.unit_price)
 
         # Recalculate subtotal regardless of provided value
         data['unit_price'] = unit_price
@@ -83,14 +83,14 @@ class SaleSerializer(serializers.ModelSerializer):
             Sale: The created sale instance.
 
         Raises:
-            ValidationError: If there is insufficient stock for any item in the sale.
+            ValidationError: If there is insufficient stock for any product in the sale.
         """
         details_data = validated_data.pop('details')
         sale = Sale.objects.create(cashier=validated_data['cashier'])
         total_amount = 0
 
         for detail_data in details_data:
-            item = detail_data['item']
+            product = detail_data['product']
             quantity = detail_data['quantity']
             unit_price = detail_data['unit_price']  # Already validated and set in SaleDetailSerializer
             subtotal = detail_data['subtotal']      # Already calculated
@@ -98,16 +98,16 @@ class SaleSerializer(serializers.ModelSerializer):
             total_amount += subtotal
             SaleDetail.objects.create(
                 sale=sale,
-                item=item,
+                product=product,
                 quantity=quantity,
                 unit_price=unit_price,
                 subtotal=subtotal
             )
             # Update inventory
-            item.quantity -= quantity
-            if item.quantity < 0:
-                raise serializers.ValidationError(f"Insufficient stock for item {item.name}")
-            item.save()
+            product.stock_level -= quantity
+            if product.stock_level < 0:
+                raise serializers.ValidationError(f"Insufficient stock for product {product.name}")
+            product.save()
 
         sale.total_amount = total_amount
         sale.save()

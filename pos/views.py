@@ -39,9 +39,9 @@ class SaleListCreateView(APIView):
             request (Request): The HTTP request object containing the sale data in JSON format.
                               Expected fields:
                               - details (list): A list of sale detail objects, each containing:
-                                - item (int): The ID of the item (required).
+                                - product (int): The ID of the product (required).
                                 - quantity (int): The quantity sold (required, positive integer).
-                                - unit_price (decimal): The unit price of the item (optional, max 10 digits, 2 decimal places; defaults to item's unit price).
+                                - unit_price (decimal): The unit price of the product (optional, max 10 digits, 2 decimal places; defaults to product's unit price).
 
         Returns:
             Response: A JSON response containing the serialized sale object on success with status code 201 Created.

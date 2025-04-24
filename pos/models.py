@@ -1,6 +1,6 @@
 from django.db import models
 from django.contrib.auth import get_user_model
-from inventory.models import Item
+from products.models import Product
 
 User = get_user_model()
 
@@ -19,10 +19,10 @@ class Sale(models.Model):
 
 class SaleDetail(models.Model):
     """
-    Model representing individual items within a sale.
+    Model representing individual products within a sale.
     """
     sale = models.ForeignKey(Sale, on_delete=models.CASCADE, related_name='details')
-    item = models.ForeignKey(Item, on_delete=models.CASCADE)
+    product = models.ForeignKey(Product, on_delete=models.CASCADE, null=True, blank=False)
     quantity = models.PositiveIntegerField()
     unit_price = models.DecimalField(max_digits=10, decimal_places=2)
     subtotal = models.DecimalField(max_digits=10, decimal_places=2)

@@ -4,7 +4,6 @@ from rest_framework.views import APIView
 from django.shortcuts import get_object_or_404
 from .models import Category, Product
 from .serializers import (
-    CategorySerializer, 
     ProductSerializer,
     ProductStockUpdateSerializer
 )
@@ -194,3 +193,11 @@ class ProductStockUpdateView(APIView):
             serializer.errors, 
             status=status.HTTP_400_BAD_REQUEST
         )
+    
+
+
+
+
+
+
+    

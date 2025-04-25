@@ -4,20 +4,51 @@ from .models import Product, ProductImage
 from django.core.files.base import ContentFile
 import base64
 
+# class ProductImageSerializer(serializers.ModelSerializer):
+#     """
+#     Serializer for the ProductImage model.
+    
+#     Handles image uploads and serialization.
+#     """
+#     image = serializers.SerializerMethodField()
+
+#     class Meta:
+#         model = ProductImage
+#         fields = ['id', 'image', 'uploaded_at']
+#         read_only_fields = ['id', 'uploaded_at']
+
+#     def get_image(self, obj):
+#         """
+#         Return the absolute URL for the image.
+        
+#         Args:
+#             obj: ProductImage instance
+            
+#         Returns:
+#             str: Absolute URL of the image, or None if no image
+#         """
+#         request = self.context.get('request')
+#         if obj.image and request:
+#             return request.build_absolute_uri(obj.image.url)
+#         return None
+
+
+
 class ProductImageSerializer(serializers.ModelSerializer):
     """
     Serializer for the ProductImage model.
     
     Handles image uploads and serialization.
     """
-    image = serializers.SerializerMethodField()
+    image = serializers.ImageField()  # For handling file uploads
+    image_url = serializers.SerializerMethodField()  # For returning the absolute URL
 
     class Meta:
         model = ProductImage
-        fields = ['id', 'image', 'uploaded_at']
-        read_only_fields = ['id', 'uploaded_at']
+        fields = ['id', 'image', 'image_url', 'uploaded_at']
+        read_only_fields = ['id', 'uploaded_at', 'image_url']
 
-    def get_image(self, obj):
+    def get_image_url(self, obj):
         """
         Return the absolute URL for the image.
         

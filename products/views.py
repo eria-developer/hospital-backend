@@ -1,13 +1,14 @@
+# ```python
 from rest_framework import status
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from django.shortcuts import get_object_or_404
-from .models import Category, Product
+from .models import Category, Product, ProductImage
 from .serializers import (
     ProductSerializer,
-    ProductStockUpdateSerializer
+    ProductStockUpdateSerializer,
+    ProductImageSerializer
 )
-
 
 class ProductListCreateView(APIView):
     """
@@ -33,12 +34,10 @@ class ProductListCreateView(APIView):
         """
         products = Product.objects.all()
 
-        # Filter by category if provided
         category_id = request.query_params.get('category')
         if category_id:
             products = products.filter(category_id=category_id)
         
-        # Filter by reorder status if provided
         needs_reorder = request.query_params.get('needs_reorder')
         if needs_reorder:
             if needs_reorder.lower() == 'true':
@@ -46,7 +45,7 @@ class ProductListCreateView(APIView):
             elif needs_reorder.lower() == 'false':
                 products = [p for p in products if not p.needs_reorder]
         
-        serializer = ProductSerializer(products, many=True)
+        serializer = ProductSerializer(products, many=True, context={'request': request})
         return Response(serializer.data)
     
     def post(self, request):
@@ -59,7 +58,7 @@ class ProductListCreateView(APIView):
         Returns:
             Response: JSON response with created product or error messages
         """
-        serializer = ProductSerializer(data=request.data)
+        serializer = ProductSerializer(data=request.data, context={'request': request})
         if serializer.is_valid():
             serializer.save()
             return Response(
@@ -70,8 +69,6 @@ class ProductListCreateView(APIView):
             serializer.errors, 
             status=status.HTTP_400_BAD_REQUEST
         )
-    
-
 
 class ProductDetailView(APIView):
     """
@@ -109,7 +106,7 @@ class ProductDetailView(APIView):
             Response: JSON response with product data
         """
         product = self.get_object(pk)
-        serializer = ProductSerializer(product)
+        serializer = ProductSerializer(product, context={'request': request})
         return Response(serializer.data)
     
     def put(self, request, pk):
@@ -124,7 +121,7 @@ class ProductDetailView(APIView):
             Response: JSON response with updated product or error messages
         """
         product = self.get_object(pk)
-        serializer = ProductSerializer(product, data=request.data)
+        serializer = ProductSerializer(product, data=request.data, context={'request': request})
         if serializer.is_valid():
             serializer.save()
             return Response(serializer.data)
@@ -147,8 +144,6 @@ class ProductDetailView(APIView):
         product = self.get_object(pk)
         product.delete()
         return Response(status=status.HTTP_204_NO_CONTENT)
-    
-
 
 class ProductStockUpdateView(APIView):
     """
@@ -187,17 +182,51 @@ class ProductStockUpdateView(APIView):
         serializer = ProductStockUpdateSerializer(product, data=request.data, partial=True)
         if serializer.is_valid():
             serializer.save()
-            # Return the full product data after update
-            return Response(ProductSerializer(product).data)
+            return Response(ProductSerializer(product, context={'request': request}).data)
         return Response(
             serializer.errors, 
             status=status.HTTP_400_BAD_REQUEST
         )
+
+class ProductImageCreateView(APIView):
+    """
+    API view for uploading images for a specific product.
     
-
-
-
-
-
-
+    POST: Upload a new image
+    """
     
+    def get_object(self, pk):
+        """
+        Helper method to get product object with given primary key.
+        
+        Args:
+            pk: Primary key of the product
+            
+        Returns:
+            Product: The product object
+            
+        Raises:
+            Http404: If product does not exist
+        """
+        return get_object_or_404(Product, pk=pk)
+    
+    def post(self, request, pk):
+        """
+        Upload a new image for a product.
+        
+        Args:
+            request: HTTP request object with image data
+            pk: Primary key of the product
+            
+        Returns:
+            Response: JSON response with uploaded image or error messages
+        """
+        product = self.get_object(pk)
+        serializer = ProductImageSerializer(data=request.data, context={'request': request})
+        if serializer.is_valid():
+            serializer.save(product=product)
+            if not product.default_image:
+                product.default_image = ProductImage.objects.filter(product=product).first()
+                product.save()
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)

@@ -5,7 +5,6 @@ from rest_framework.permissions import IsAuthenticated
 from .models import Sale
 from .serializers import SaleSerializer
 
-
 class SaleListCreateView(APIView):
     """
     API view to list all sales or create a new sale.
@@ -15,70 +14,30 @@ class SaleListCreateView(APIView):
     def get(self, request):
         """
         Retrieve a list of all sales.
-
-        Parameters:
-            request (Request): The HTTP request object.
-
-        Returns:
-            Response: A JSON response containing a list of serialized sale objects.
-                      Each sale includes its ID, date, total amount, cashier, patient (Walk-in Customer if not specified), and details.
-                      Status code 200 OK on success.
-
-        Authentication:
-            Requires a valid authentication token in the Authorization header.
         """
         sales = Sale.objects.all()
         serializer = SaleSerializer(sales, many=True)
-        return Response(serializer.data)
+        return Response(serializer.data, status=status.HTTP_200_OK)
 
     def post(self, request):
         """
-        Create a new sale with details, associate it with a patient (defaulting to Walk-in Customer if not specified), and update inventory accordingly.
-
-        Parameters:
-            request (Request): The HTTP request object containing the sale data in JSON format.
-                              Expected fields:
-                              - patient (int): The ID of the associated patient (optional, defaults to Walk-in Customer if not provided or null).
-                              - details (list): A list of sale detail objects, each containing:
-                                - product (int): The ID of the product (required).
-                                - quantity (int): The quantity sold (required, positive integer).
-                                - unit_price (decimal): The unit price of the product (optional, max 10 digits, 2 decimal places; defaults to product's unit price).
-
-        Returns:
-            Response: A JSON response containing the serialized sale object on success with status code 201 Created.
-                      If the input data is invalid (e.g., invalid patient ID or insufficient stock), returns errors with status code 400 Bad Request.
-
-        Authentication:
-            Requires a valid authentication token in the Authorization header.
-
-        Notes:
-            - The cashier is automatically set to the authenticated user.
-            - The total_amount and date are calculated server-side and are read-only.
-            - Inventory quantities (product stock levels) are updated automatically, and the request will fail if stock is insufficient.
-            - If the patient field is not provided or is null, the sale is associated with the Walk-in Customer (default patient).
+        Create a new sale with details, update inventory, and associate with a patient (optional).
         """
         serializer = SaleSerializer(data=request.data)
         if serializer.is_valid():
-            serializer.save(cashier=request.user)  # Set cashier to current user
+            serializer.save(cashier=request.user)
             return Response(serializer.data, status=status.HTTP_201_CREATED)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
-
 class SaleDetailView(APIView):
     """
-    API view to retrieve a specific sale.
+    API view to retrieve or update a specific sale.
     """
     permission_classes = [IsAuthenticated]
 
     def get_object(self, pk):
         """
-        Helper method to retrieve a sale by its primary key.
-
-        Parameters:
-            pk (int): The primary key of the sale.
-
-        Returns:
-            Sale: The sale object if found, otherwise None.
+        Retrieve a sale by its primary key.
         """
         try:
             return Sale.objects.get(pk=pk)
@@ -88,21 +47,31 @@ class SaleDetailView(APIView):
     def get(self, request, pk):
         """
         Retrieve details of a specific sale by ID.
-
-        Parameters:
-            request (Request): The HTTP request object.
-            pk (int): The primary key of the sale to retrieve.
-
-        Returns:
-            Response: A JSON response containing the serialized sale object with status code 200 OK.
-                      Includes the sale's ID, date, total amount, cashier, patient (Walk-in Customer if not specified), and details.
-                      If the sale is not found, returns status code 404 Not Found.
-
-        Authentication:
-            Requires a valid authentication token in the Authorization header.
         """
         sale = self.get_object(pk)
         if sale is None:
-            return Response(status=status.HTTP_404_NOT_FOUND)
+            return Response({"error": "Sale not found"}, status=status.HTTP_404_NOT_FOUND)
         serializer = SaleSerializer(sale)
-        return Response(serializer.data)
+        return Response(serializer.data, status=status.HTTP_200_OK)
+
+    def patch(self, request, pk):
+        """
+        Update the status or payment method of a sale.
+        """
+        sale = self.get_object(pk)
+        if sale is None:
+            return Response({"error": "Sale not found"}, status=status.HTTP_404_NOT_FOUND)
+        
+        # Only allow updating status and payment_method
+        allowed_fields = {'status', 'payment_method'}
+        if not set(request.data.keys()).issubset(allowed_fields):
+            return Response(
+                {"error": "Only status and payment_method can be updated"},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        serializer = SaleSerializer(sale, data=request.data, partial=True)
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data, status=status.HTTP_200_OK)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
